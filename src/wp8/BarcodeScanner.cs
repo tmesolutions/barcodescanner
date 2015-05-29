@@ -10,6 +10,7 @@
 
  namespace WPCordovaClassLib.Cordova.Commands
 {
+    using System;
     using System.Runtime.Serialization;
     using Microsoft.Phone.Tasks;
     using WPCordovaClassLib.Cordova.JSON;
@@ -20,6 +21,8 @@
     /// </summary>
     public class BarcodeScanner : BaseCommand
     {
+        private event EventHandler<PluginResult> mySavedHandler;
+
         /// <summary>
         /// Scans the barcode.
         /// </summary>
@@ -28,6 +31,13 @@
         {
             var task = new BarcodeScannerTask();
             task.Completed += this.TaskCompleted;
+
+            //store a local copy of the handles as they will get wiped when the browser window is closed and camera opened
+            if (ResultHandlers.ContainsKey(CurrentCommandCallbackId))
+            {
+                mySavedHandler = ResultHandlers[CurrentCommandCallbackId];
+            }
+
             task.Show();
         }
 
@@ -38,6 +48,12 @@
         /// <param name="e">The scan result.</param>
         private void TaskCompleted(object sender, BarcodeScannerTask.ScanResult e)
         {
+            //If handles have been wiped then restore them!
+            if (!ResultHandlers.ContainsKey(CurrentCommandCallbackId))
+            {
+                ResultHandlers.Add(CurrentCommandCallbackId, mySavedHandler);
+            }
+
             PluginResult result;
 
             switch (e.TaskResult)
